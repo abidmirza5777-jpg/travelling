@@ -1,0 +1,781 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Bus Bill Generator</title>
+
+    <!-- PDF Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            padding: 30px;
+            font-family: Arial, sans-serif;
+            background: #f2f4f7;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: auto;
+            display: grid;
+            grid-template-columns: 1fr 540px;
+            gap: 30px;
+            align-items: start;
+        }
+
+        .form-card,
+        .preview-card {
+            padding: 25px;
+            background: #fff;
+            border-radius: 16px;
+            box-shadow: 0 10px 35px rgba(0, 0, 0, 0.08);
+        }
+
+        h1,
+        h2 {
+            margin-top: 0;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 16px;
+        }
+
+        .field {
+            display: flex;
+            flex-direction: column;
+            gap: 7px;
+        }
+
+        .full-width {
+            grid-column: 1 / -1;
+        }
+
+        label {
+            font-size: 13px;
+            font-weight: 700;
+        }
+
+        input,
+        select {
+            width: 100%;
+            height: 46px;
+            padding: 0 12px;
+            border: 1px solid #d0d5dd;
+            border-radius: 9px;
+            outline: none;
+        }
+
+        input:focus,
+        select:focus {
+            border-color: #d94f58;
+            box-shadow: 0 0 0 3px rgba(217, 79, 88, 0.12);
+        }
+
+        input[readonly] {
+            background: #f2f4f7;
+        }
+
+        .buttons {
+            margin-top: 24px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        button {
+            min-height: 45px;
+            padding: 0 18px;
+            border: none;
+            border-radius: 9px;
+            cursor: pointer;
+            color: #fff;
+            background: #184f8f;
+            font-weight: 700;
+        }
+
+        .download-button {
+            background: #087c4c;
+        }
+
+        .regenerate-button {
+            background: #d94f58;
+        }
+
+        .back-button {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 11px 16px;
+            color: #ffffff;
+            text-decoration: none;
+            background: linear-gradient(135deg, #0f4c81, #0ea5a4);
+            border-radius: 10px;
+            font-size: 13px;
+            font-weight: 700;
+            transition: 0.2s ease;
+        }
+
+        .back-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(15, 76, 129, 0.22);
+        }
+
+        canvas {
+            width: 100%;
+            height: auto;
+            display: block;
+            border: 1px solid #e4e7ec;
+            background: white;
+        }
+
+        @media (max-width: 1000px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+
+            .preview-card {
+                max-width: 540px;
+                width: 100%;
+            }
+        }
+
+        @media (max-width: 600px) {
+            body {
+                padding: 15px;
+            }
+
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .full-width {
+                grid-column: auto;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+
+        <div class="form-card">
+            <h1>Bus Bill Generator</h1>
+
+            <form id="ticketForm">
+                <div class="form-grid">
+
+
+                    <div class="field">
+                        <label for="fromCity">From City</label>
+                        <input type="text" id="fromCity" required>
+                    </div>
+
+                    <div class="field">
+                        <label for="toCity">To City</label>
+                        <input type="text" id="toCity" required>
+                    </div>
+
+                    <div class="field">
+                        <label for="fromStand">From Bus Stand</label>
+                        <input type="text" id="fromStand" placeholder="Departure bus stand" required
+                            value="RTC BUS STAND">
+                    </div>
+
+                    <div class="field">
+                        <label for="toStand">To Bus Stand</label>
+                        <input type="text" id="toStand" placeholder="Destination bus stand" required
+                            value="RTC BUS STAND">
+                    </div>
+
+                    <div class="field">
+                        <label for="journeyDate">Journey Date</label>
+                        <input type="date" id="journeyDate" required>
+                    </div>
+
+                    <div class="field">
+                        <label for="departureTime">Departure Time</label>
+                        <input type="time" id="departureTime" required>
+                    </div>
+
+                    <div class="field">
+                        <label for="duration">Duration</label>
+                        <input type="time" id="duration" value="01:30" required>
+                    </div>
+
+                    <div class="field">
+                        <label for="arrivalTime">Arrival Time</label>
+                        <input type="time" id="arrivalTime" readonly>
+                    </div>
+
+                    <div class="field">
+                        <label for="busType">Bus Type <span class="required">*</span></label>
+
+                        <input type="text" id="busType" value="GARUDA" required>
+                    </div>
+
+
+                    <div class="field">
+                        <label for="operatorName">Operator Name</label>
+                        <input type="text" id="operatorName" value="APSRTC" required>
+                    </div>
+
+                    <div class="field">
+                        <label for="serviceNumber">Service Name</label>
+                        <input type="text" id="serviceNumber" value="APSRTC" required>
+                    </div>
+
+                    <div class="field">
+                        <label for="passengerName">Passenger Name</label>
+                        <input type="text" id="passengerName" required value="ABID ALI MIRZA">
+                    </div>
+
+                    <div class="field">
+                        <label for="seatNumber">Seat Number</label>
+                        <input type="number" id="seatNumber" readonly>
+                    </div>
+
+                    <div class="field">
+                        <label for="ticketNumber">Ticket Number</label>
+                        <input type="text" id="ticketNumber" readonly>
+                    </div>
+
+                    <div class="field">
+                        <label for="pnrNumber">PNR Number</label>
+                        <input type="text" id="pnrNumber" readonly>
+                    </div>
+
+                    <div class="field">
+                        <label for="fare">Fare Amount</label>
+                        <input type="number" id="fare" min="1" step="0.01" placeholder="Enter fare" required>
+                    </div>
+
+                </div>
+
+                <div class="buttons">
+                    <button type="submit">
+                        Generate Bill
+                    </button>
+
+                    <button type="button" class="download-button" id="downloadImageButton">
+                        Download Image
+                    </button>
+
+                    <button type="button" class="download-button" id="downloadPdfButton">
+                        Download PDF
+                    </button>
+
+                    <button type="button" class="regenerate-button" id="regenerateButton">
+                        New Ticket
+                    </button>
+                </div>
+            </form>
+
+            <div style="margin-bottom: 18px;">
+                <center><br><a href="index.php" class="back-button">
+                        ← Back to Home
+                    </a></center>
+            </div>
+        </div>
+
+        <div class="preview-card">
+            <h2>Bill Preview</h2>
+
+            <canvas id="billCanvas"></canvas>
+        </div>
+
+    </div>
+
+    <script>
+        const canvas = document.getElementById("billCanvas");
+        const context = canvas.getContext("2d");
+
+        const ticketForm = document.getElementById("ticketForm");
+        const downloadImageButton =
+            document.getElementById("downloadImageButton");
+        const downloadPdfButton =
+            document.getElementById("downloadPdfButton");
+        const regenerateButton =
+            document.getElementById("regenerateButton");
+
+        const billImage = new Image();
+
+        /*
+         * IMPORTANT:
+         * Use your empty bill image here.
+         */
+        billImage.src = "bill-template.jpg";
+
+        billImage.onload = function () {
+            canvas.width = billImage.naturalWidth;
+            canvas.height = billImage.naturalHeight;
+
+            drawBlankBill();
+        };
+
+        billImage.onerror = function () {
+            alert(
+                "bill-template.jpg was not found. Place the empty bill image in the same folder."
+            );
+        };
+
+        function getValue(id) {
+            return document.getElementById(id).value.trim();
+        }
+
+        function generateNineDigits() {
+            return Math.floor(
+                100000000 + Math.random() * 900000000
+            ).toString();
+        }
+
+        function generateTicketDetails() {
+            document.getElementById("ticketNumber").value =
+                "TRC" + generateNineDigits();
+
+            document.getElementById("pnrNumber").value =
+                generateNineDigits();
+
+            document.getElementById("seatNumber").value =
+                Math.floor(Math.random() * 40) + 1;
+        }
+
+        function calculateArrivalTime() {
+            const departure =
+                document.getElementById("departureTime").value;
+
+            const duration =
+                document.getElementById("duration").value;
+
+            if (!departure || !duration) {
+                document.getElementById("arrivalTime").value = "";
+                return;
+            }
+
+            const [departureHours, departureMinutes] =
+                departure.split(":").map(Number);
+
+            const [durationHours, durationMinutes] =
+                duration.split(":").map(Number);
+
+            const totalMinutes =
+                departureHours * 60 +
+                departureMinutes +
+                durationHours * 60 +
+                durationMinutes;
+
+            const arrivalHours =
+                Math.floor(totalMinutes / 60) % 24;
+
+            const arrivalMinutes =
+                totalMinutes % 60;
+
+            document.getElementById("arrivalTime").value =
+                String(arrivalHours).padStart(2, "0") +
+                ":" +
+                String(arrivalMinutes).padStart(2, "0");
+        }
+
+        function formatTime(timeValue) {
+            if (!timeValue) {
+                return "";
+            }
+
+            const [hoursValue, minutes] =
+                timeValue.split(":").map(Number);
+
+            const suffix = hoursValue >= 12 ? "PM" : "AM";
+
+            let hours = hoursValue % 12;
+
+            if (hours === 0) {
+                hours = 12;
+            }
+
+            return (
+                String(hours).padStart(2, "0") +
+                ":" +
+                String(minutes).padStart(2, "0") +
+                " " +
+                suffix
+            );
+        }
+
+        function formatDate(dateValue) {
+            if (!dateValue) {
+                return {
+                    date: "",
+                    day: ""
+                };
+            }
+
+            const dateObject = new Date(dateValue + "T00:00:00");
+
+            return {
+                date: dateObject.toLocaleDateString("en-GB", {
+                    day: "2-digit",
+                    month: "short"
+                }),
+                day: dateObject.toLocaleDateString("en-GB", {
+                    weekday: "long"
+                })
+            };
+        }
+
+        function drawBlankBill() {
+            context.clearRect(0, 0, canvas.width, canvas.height);
+
+            context.drawImage(
+                billImage,
+                0,
+                0,
+                canvas.width,
+                canvas.height
+            );
+        }
+
+        function drawText(
+            text,
+            x,
+            y,
+            fontSize,
+            color,
+            fontWeight = "normal",
+            maxWidth = null
+        ) {
+            context.font =
+                fontWeight + " " + fontSize + "px Arial";
+
+            context.fillStyle = color;
+            context.textBaseline = "top";
+
+            if (maxWidth) {
+                context.fillText(text, x, y, maxWidth);
+            } else {
+                context.fillText(text, x, y);
+            }
+        }
+
+        function drawBillData() {
+            drawBlankBill();
+
+            const journeyDate =
+                formatDate(getValue("journeyDate"));
+
+            const departureTime =
+                formatTime(getValue("departureTime"));
+
+            const arrivalTime =
+                formatTime(getValue("arrivalTime"));
+
+            const duration =
+                getValue("duration");
+
+            /*
+             * Adjust these X and Y positions according to
+             * your exact empty bill image.
+             *
+             * Coordinates below are based approximately
+             * on the sample image you uploaded.
+             */
+
+            // Upper red section
+            drawText(
+                getValue("fromCity"),
+                122,
+                48,
+                28,
+                "#ffffff",
+                "bold",
+                350
+            );
+
+            drawText(
+                getValue("fromStand"),
+                122,
+                90,
+                24,
+                "#ffffff",
+                "normal",
+                350
+            );
+
+            drawText(
+                getValue("toCity"),
+                122,
+                164,
+                30,
+                "#ffffff",
+                "bold",
+                350
+            );
+
+            drawText(
+                getValue("toStand"),
+                122,
+                207,
+                22,
+                "#ffffff",
+                "normal",
+                350
+            );
+
+            drawText(
+                departureTime + " - " + arrivalTime,
+                61,
+                290,
+                23,
+                "#ffffff",
+                "bold",
+                420
+            );
+
+            drawText(
+                "Duration: " + duration,
+                61,
+                332,
+                22,
+                "#ffffff",
+                "normal",
+                420
+            );
+
+            drawText(
+                journeyDate.date + "  " + journeyDate.day,
+                61,
+                378,
+                22,
+                "#ffffff",
+                "bold",
+                420
+            );
+
+            drawText(
+                getValue("operatorName"),
+                61,
+                435,
+                22,
+                "#ffffff",
+                "normal",
+                420
+            );
+
+
+            drawText(
+                getValue("serviceNumber") +
+                " - " +
+                getValue("busType"),
+                61,
+                484,
+                21,
+                "#ffffff",
+                "normal",
+                420
+            );
+
+            // Lower white section
+            drawText(
+                getValue("seatNumber"),
+                191,
+                621,
+                22,
+                "#252525",
+                "bold"
+            );
+
+            drawText(
+                getValue("passengerName"),
+                191,
+                655,
+                22,
+                "#252525",
+                "bold",
+                300
+            );
+
+            drawText(
+                getValue("ticketNumber"),
+                180,
+                746,
+                22,
+                "#252525",
+                "normal",
+                330
+            );
+
+            drawText(
+                getValue("pnrNumber"),
+                180,
+                801,
+                22,
+                "#252525",
+                "normal"
+            );
+
+            const fare = Number(getValue("fare") || 0);
+
+            drawText(
+                "₹ " + fare.toFixed(2),
+                180,
+                865,
+                22,
+                "#252525",
+                "normal"
+            );
+        }
+
+        ticketForm.addEventListener("submit", function (event) {
+            event.preventDefault();
+
+            calculateArrivalTime();
+
+            if (!ticketForm.checkValidity()) {
+                ticketForm.reportValidity();
+                return;
+            }
+
+            if (getValue("fromCity") === getValue("toCity")) {
+                alert("From city and To city cannot be the same.");
+                return;
+            }
+
+            drawBillData();
+        });
+
+        document
+            .getElementById("departureTime")
+            .addEventListener("input", calculateArrivalTime);
+
+        document
+            .getElementById("duration")
+            .addEventListener("input", calculateArrivalTime);
+
+        regenerateButton.addEventListener("click", function () {
+            generateTicketDetails();
+            drawBillData();
+        });
+
+        downloadImageButton.addEventListener(
+            "click",
+            function () {
+                calculateArrivalTime();
+
+                if (!ticketForm.checkValidity()) {
+                    ticketForm.reportValidity();
+                    return;
+                }
+
+                if (getValue("fromCity") === getValue("toCity")) {
+                    alert("From city and To city cannot be the same.");
+                    return;
+                }
+
+                drawBillData();
+
+                const imageData = canvas.toDataURL("image/png");
+
+                const downloadLink = document.createElement("a");
+                downloadLink.href = imageData;
+                downloadLink.download =
+                    getValue("ticketNumber") +
+                    "-bus-ticket.png";
+
+                document.body.appendChild(downloadLink);
+                downloadLink.click();
+                downloadLink.remove();
+            }
+        );
+
+        downloadPdfButton.addEventListener(
+            "click",
+            function () {
+                calculateArrivalTime();
+
+                if (!ticketForm.checkValidity()) {
+                    ticketForm.reportValidity();
+                    return;
+                }
+
+                if (getValue("fromCity") === getValue("toCity")) {
+                    alert("From city and To city cannot be the same.");
+                    return;
+                }
+
+                drawBillData();
+
+                const imageData =
+                    canvas.toDataURL("image/jpeg", 1.0);
+
+                const canvasWidth = canvas.width;
+                const canvasHeight = canvas.height;
+
+                /*
+                 * Convert pixels to millimetres.
+                 * Keeps the PDF in the same aspect ratio.
+                 */
+                const pdfWidth = 100;
+
+                const pdfHeight =
+                    pdfWidth * (canvasHeight / canvasWidth);
+
+                const { jsPDF } = window.jspdf;
+
+                const pdf = new jsPDF({
+                    orientation:
+                        pdfHeight > pdfWidth
+                            ? "portrait"
+                            : "landscape",
+                    unit: "mm",
+                    format: [pdfWidth, pdfHeight]
+                });
+
+                pdf.addImage(
+                    imageData,
+                    "JPEG",
+                    0,
+                    0,
+                    pdfWidth,
+                    pdfHeight
+                );
+
+                pdf.save(
+                    getValue("ticketNumber") +
+                    "-bus-ticket.pdf"
+                );
+            }
+        );
+
+        function setTodayDate() {
+            const today = new Date();
+
+            const year = today.getFullYear();
+
+            const month = String(
+                today.getMonth() + 1
+            ).padStart(2, "0");
+
+            const day = String(
+                today.getDate()
+            ).padStart(2, "0");
+
+            document.getElementById("journeyDate").value =
+                year + "-" + month + "-" + day;
+        }
+
+        generateTicketDetails();
+        setTodayDate();
+    </script>
+
+</body>
+
+</html>

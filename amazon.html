@@ -1,0 +1,951 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>E-Ticket Bill Generator</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+    <style>
+        :root {
+            --primary: #0f4c81;
+            --primary-dark: #07345c;
+            --secondary: #0ea5a4;
+            --success: #15803d;
+            --danger: #dc2626;
+            --background: #eef2f6;
+            --card: #ffffff;
+            --text: #172033;
+            --muted: #667085;
+            --border: #d8e0e8;
+            --shadow: 0 22px 55px rgba(15, 76, 129, 0.14);
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            font-family: "Inter", sans-serif;
+            color: var(--text);
+            background:
+                radial-gradient(circle at top left, rgba(14,165,164,.13), transparent 32%),
+                radial-gradient(circle at bottom right, rgba(15,76,129,.15), transparent 35%),
+                var(--background);
+        }
+
+        input, select, button { font: inherit; }
+
+        .topbar {
+            min-height: 72px;
+            padding: 15px 5%;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            color: #fff;
+            background: linear-gradient(135deg, var(--primary-dark), var(--primary), var(--secondary));
+            box-shadow: 0 8px 28px rgba(7, 52, 92, .18);
+        }
+
+        .brand { display: flex; align-items: center; gap: 13px; }
+        .brand-icon {
+            width: 44px;
+            height: 44px;
+            display: grid;
+            place-items: center;
+            border-radius: 14px;
+            color: var(--primary-dark);
+            background: #fff;
+            font-size: 20px;
+            font-weight: 900;
+        }
+
+        .brand h1 { margin: 0 0 3px; font-size: 20px; }
+        .brand p { margin: 0; color: rgba(255,255,255,.76); font-size: 11px; }
+
+        main { padding: 34px 20px 60px; }
+
+        .container {
+            width: 100%;
+            max-width: 1500px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) minmax(540px, 0.9fr);
+            gap: 30px;
+            align-items: start;
+        }
+
+        .card {
+            overflow: hidden;
+            background: var(--card);
+            border-radius: 24px;
+            box-shadow: var(--shadow);
+        }
+
+        .card-header {
+            padding: 24px 28px;
+            color: #fff;
+            background: linear-gradient(135deg, var(--primary-dark), var(--primary));
+        }
+
+        .card-header h2 { margin: 0 0 5px; font-size: 22px; }
+        .card-header p { margin: 0; color: rgba(255,255,255,.75); font-size: 12px; }
+        .card-body { padding: 26px; }
+
+        .section-title {
+            grid-column: 1 / -1;
+            padding-bottom: 9px;
+            color: var(--primary-dark);
+            border-bottom: 1px solid var(--border);
+            font-size: 12px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: .06em;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 18px;
+        }
+
+        .field { display: flex; flex-direction: column; min-width: 0; }
+        .full-width { grid-column: 1 / -1; }
+
+        label {
+            margin-bottom: 7px;
+            color: #344054;
+            font-size: 12px;
+            font-weight: 750;
+        }
+
+        input, select {
+            width: 100%;
+            min-height: 48px;
+            padding: 0 13px;
+            color: var(--text);
+            background: #fbfcfe;
+            border: 1px solid var(--border);
+            border-radius: 11px;
+            outline: none;
+            font-size: 13px;
+        }
+
+        input:focus, select:focus {
+            border-color: var(--secondary);
+            background: #fff;
+            box-shadow: 0 0 0 4px rgba(14,165,164,.1);
+        }
+
+
+        .auto-generated-input {
+            color: #0f4c81 !important;
+            background: #eef6ff !important;
+            border-color: #9cc4ea !important;
+            font-weight: 700;
+        }
+
+        .auto-generated-note {
+            margin-top: 5px;
+            color: #0f4c81;
+            font-size: 10px;
+            font-weight: 700;
+        }
+
+        .buttons {
+            margin-top: 26px;
+            padding-top: 22px;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: flex-end;
+            gap: 10px;
+            border-top: 1px solid var(--border);
+        }
+
+        button {
+            min-height: 47px;
+            padding: 0 18px;
+            border: none;
+            border-radius: 11px;
+            cursor: pointer;
+            color: #fff;
+            font-size: 13px;
+            font-weight: 750;
+            transition: transform .2s ease;
+        }
+
+        button:hover { transform: translateY(-2px); }
+        .generate-btn { background: linear-gradient(135deg, var(--primary), var(--secondary)); }
+        .image-btn { background: #7c3aed; }
+        .pdf-btn { background: var(--success); }
+        .random-btn { background: var(--danger); }
+
+        .preview-card { position: sticky; top: 20px; }
+
+        .canvas-shell {
+            min-height: 720px;
+            padding: 16px;
+            display: grid;
+            place-items: center;
+            overflow: auto;
+            background: #f4f6f8;
+            border: 1px solid #dfe5eb;
+            border-radius: 15px;
+        }
+
+        canvas {
+            width: 100%;
+            max-width: 100%;
+            height: auto;
+            display: block;
+            background: #fff;
+            box-shadow: 0 12px 30px rgba(15,23,42,.12);
+        }.back-button {
+			display: inline-flex;
+			align-items: center;
+			gap: 8px;
+			padding: 11px 16px;
+			color: #ffffff;
+			text-decoration: none;
+			background: linear-gradient(135deg, #0f4c81, #0ea5a4);
+			border-radius: 10px;
+			font-size: 13px;
+			font-weight: 700;
+			transition: 0.2s ease;
+		}
+
+		.back-button:hover {
+			transform: translateY(-2px);
+			box-shadow: 0 8px 20px rgba(15, 76, 129, 0.22);
+		}
+
+        .status {
+            margin-top: 13px;
+            padding: 10px 12px;
+            color: #475467;
+            background: #eef2f6;
+            border-radius: 9px;
+            font-size: 11px;
+        }
+
+        @media (max-width: 1200px) {
+            .container { grid-template-columns: 1fr; }
+            .preview-card { position: static; }
+        }
+
+        @media (max-width: 850px) {
+            .form-grid { grid-template-columns: repeat(2, minmax(0,1fr)); }
+        }
+
+        @media (max-width: 600px) {
+            main { padding: 20px 12px 40px; }
+            .form-grid { grid-template-columns: 1fr; }
+            .section-title, .full-width { grid-column: auto; }
+            .card-body { padding: 18px; }
+            .buttons { flex-direction: column; }
+            button { width: 100%; }
+        }
+    </style>
+</head>
+
+<body>
+<header class="topbar">
+    <div class="brand">
+        <div class="brand-icon">ET</div>
+        <div>
+            <h1>E-Ticket Generator</h1>
+            <p>All ticket fields are editable</p>
+        </div>
+    </div>
+</header>
+
+<main>
+<div class="container">
+    <section class="card">
+        <div class="card-header">
+            <h2>Ticket Details</h2>
+            <p>Enter every value that should appear on the ticket.</p>
+        </div>
+
+        <div class="card-body">
+            <form id="ticketForm">
+                <div class="form-grid">
+
+                    <div class="section-title">Ticket Identification</div>
+
+                    <div class="field">
+                        <label for="orderNumber">Order Number</label>
+                        <input type="text" id="orderNumber" value="171-4648271-2802377" required class="auto-generated-input" readonly>
+                    </div>
+
+                    <div class="field">
+                        <label for="ticketId">Ticket ID</label>
+                        <input type="text" id="ticketId" value="1960AJYO" required class="auto-generated-input" readonly>
+                    </div>
+
+                    <div class="field">
+                        <label for="pnr">PNR</label>
+                        <input type="text" id="pnr" value="TS2308311038042424436CSTH/RB953368/AP-617A" required class="auto-generated-input" readonly>
+                    </div>
+
+                    <div class="field">
+                        <label for="boardingPhone">Boarding Point Phone</label>
+                        <input type="text" id="boardingPhone" value="9889833933" required class="auto-generated-input" readonly>
+                    </div>
+<div class="section-title">Route and Bus Details</div>
+
+                    <div class="field">
+                        <label for="fromCity">From City</label>
+                        <input type="text" id="fromCity"   required>
+                    </div>
+
+                    <div class="field">
+                        <label for="toCity">To City</label>
+                        <input type="text" id="toCity"   required>
+                    </div>
+
+                    <div class="field">
+                        <label for="operatorName">Operator Name</label>
+                        <input type="text" id="operatorName" value="Srivari Travels" required>
+                    </div>
+
+                   <div class="field">
+						<label for="busType">Bus Type</label>
+
+						<select id="busType" required>
+							<option value="">Select bus type</option>
+
+							<option value="A/C Sleeper (2+1)" selected>
+								A/C Sleeper (2+1)
+							</option>
+
+							<option value="Non A/C Sleeper (2+1)">
+								Non A/C Sleeper (2+1)
+							</option>
+
+							<option value="A/C Seater (2+2)">
+								A/C Seater (2+2)
+							</option>
+
+							<option value="Non A/C Seater (2+2)">
+								Non A/C Seater (2+2)
+							</option>
+
+							<option value="A/C Semi Sleeper (2+2)">
+								A/C Semi Sleeper (2+2)
+							</option>
+
+							<option value="Non A/C Semi Sleeper (2+2)">
+								Non A/C Semi Sleeper (2+2)
+							</option>
+
+							<option value="Volvo A/C Multi Axle">
+								Volvo A/C Multi Axle
+							</option>
+
+							<option value="Volvo A/C Sleeper">
+								Volvo A/C Sleeper
+							</option>
+
+							<option value="Mercedes Benz A/C">
+								Mercedes Benz A/C
+							</option>
+
+							<option value="Scania Multi Axle A/C">
+								Scania Multi Axle A/C
+							</option>
+
+							<option value="Super Luxury">
+								Super Luxury
+							</option>
+
+							<option value="Ultra Deluxe">
+								Ultra Deluxe
+							</option>
+
+							<option value="Deluxe">
+								Deluxe
+							</option>
+
+							<option value="Express">
+								Express
+							</option>
+
+							<option value="Garuda">
+								Garuda
+							</option>
+
+							<option value="Garuda Plus">
+								Garuda Plus
+							</option>
+
+							<option value="Indra A/C">
+								Indra A/C
+							</option>
+
+							<option value="Rajadhani A/C">
+								Rajadhani A/C
+							</option>
+
+							<option value="Amaravati">
+								Amaravati
+							</option>
+
+							<option value="Vennela Sleeper">
+								Vennela Sleeper
+							</option>
+
+							<option value="Electric A/C Bus">
+								Electric A/C Bus
+							</option>
+
+							<option value="Ordinary">
+								Ordinary
+							</option>
+
+							<option value="Palle Velugu">
+								Palle Velugu
+							</option>
+						</select>
+					</div>
+
+                    <div class="field">
+                        <label for="boardingStand">Boarding Bus Stand</label>
+                        <input type="text" id="boardingStand" value="RTC Bus Stand" required>
+                    </div>
+
+                    <div class="field">
+                        <label for="dropStand">Drop Bus Stand</label>
+                        <input type="text" id="dropStand" value="RTC Bus Stand" required>
+                    </div>
+
+                    <div class="field">
+                        <label for="boardingContact">Boarding Contact</label>
+                        <input type="text" id="boardingContact" value="9883046627" required class="auto-generated-input" readonly>
+                    </div>
+
+                    <div class="field">
+                        <label for="dropContact">Drop Contact</label>
+                        <input type="text" id="dropContact" value="9830951103" required class="auto-generated-input" readonly>
+                    </div>
+
+                    <div class="section-title">Journey Timing</div>
+
+                    <div class="field">
+                        <label for="journeyDate">Journey Date</label>
+                        <input type="date" id="journeyDate" required>
+                    </div>
+
+                    <div class="field">
+                        <label for="departureTime">Departure Time</label>
+                        <input type="time" id="departureTime" value="21:00" required>
+                    </div>
+
+                    <div class="field">
+                        <label for="arrivalTime">Arrival Time</label>
+                        <input type="time" id="arrivalTime" value="07:00" required>
+                    </div>
+
+                    <div class="field">
+                        <label for="duration">Duration</label>
+                        <input
+                            type="time"
+                            id="duration"
+                            class="auto-generated-input"
+                            readonly
+                            required
+                        >
+                    </div>
+
+                    <div class="section-title">Traveller and Fare</div>
+
+                    <div class="field">
+                        <label for="passengerName">Traveller Name</label>
+                        <input type="text" id="passengerName" value="Abid Ali Mirza" required>
+                    </div>
+
+                    <div class="field">
+                        <label for="gender">Gender</label>
+                        <select id="gender" required>
+                            <option value="Male" selected>Male</option>
+                            <option value="Female">Female</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+
+                    <div class="field">
+                        <label for="age">Age</label>
+                        <input type="number" id="age" min="1" max="120" value="30" required>
+                    </div>
+
+                    <div class="field">
+                        <label for="seatNumber">Seat Number</label>
+                        <input type="text" id="seatNumber" value="A2" required class="auto-generated-input" readonly>
+                    </div>
+
+                    <div class="field">
+                        <label for="fare">Total Fare</label>
+                        <input type="number" id="fare" min="1" step="0.01" value="1660.50" required>
+                    </div>
+
+                </div>
+
+                <div class="buttons">
+                    <button type="submit" class="generate-btn">Generate Bill</button>
+                    <button type="button" id="downloadImageButton" class="image-btn">Download Image</button>
+                    <button type="button" id="downloadPdfButton" class="pdf-btn">Download PDF</button>
+                    <button type="button" id="randomNumbersButton" class="random-btn">Generate New Numbers</button>
+                </div>
+            </form>
+			<div style="margin-bottom: 18px;">
+				<center><br><a href="index.php" class="back-button">
+					← Back to Home
+				</a></center>
+			</div>
+        </div>
+    </section>
+
+    <section class="card preview-card">
+        <div class="card-header">
+            <h2>Bill Preview</h2>
+            <p>Uses amazon-template.jpg from the same folder.</p>
+        </div>
+
+        <div class="card-body">
+            <div class="canvas-shell">
+                <canvas id="billCanvas"></canvas>
+            </div>
+            <div class="status" id="statusMessage">Loading template…</div>
+        </div>
+    </section>
+</div>
+</main>
+
+<script>
+    const TEMPLATE_PATH = "amazon-template.jpg";
+
+    const canvas = document.getElementById("billCanvas");
+    const context = canvas.getContext("2d");
+    const form = document.getElementById("ticketForm");
+    const statusMessage = document.getElementById("statusMessage");
+    const templateImage = new Image();
+
+    let templateLoaded = false;
+    let billGenerated = false;
+
+    function value(id) {
+        return document.getElementById(id).value.trim();
+    }
+
+    function randomDigits(length) {
+        let result = "";
+        for (let i = 0; i < length; i++) {
+            result += Math.floor(Math.random() * 10);
+        }
+        return result;
+    }
+
+    function randomPhoneNumber() {
+        const firstDigitOptions = ["6", "7", "8", "9"];
+        const firstDigit =
+            firstDigitOptions[
+                Math.floor(Math.random() * firstDigitOptions.length)
+            ];
+
+        return firstDigit + randomDigits(9);
+    }
+
+    function randomAlphaNumeric(length) {
+        const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+        let result = "";
+        for (let i = 0; i < length; i++) {
+            result += chars[Math.floor(Math.random() * chars.length)];
+        }
+        return result;
+    }
+
+    function generateNumbers() {
+        document.getElementById("orderNumber").value =
+            randomDigits(3) + "-" +
+            randomDigits(7) + "-" +
+            randomDigits(7);
+
+        document.getElementById("ticketId").value =
+            randomAlphaNumeric(8);
+
+        document.getElementById("pnr").value =
+            "TS" +
+            randomDigits(14) +
+            "CSTH/RB" +
+            randomDigits(6) +
+            "/AP-" +
+            randomDigits(3) +
+            "A";
+
+        document.getElementById("seatNumber").value =
+            "A" + (Math.floor(Math.random() * 40) + 1);
+
+        document.getElementById("boardingPhone").value =
+            randomPhoneNumber();
+
+        document.getElementById("boardingContact").value =
+            randomPhoneNumber();
+
+        document.getElementById("dropContact").value =
+            randomPhoneNumber();
+
+        billGenerated = false;
+
+        if (templateLoaded) {
+            drawBlankTemplate();
+        }
+
+        statusMessage.textContent =
+            "New ticket numbers and contact numbers generated.";
+    }
+
+    function formatTime(timeValue) {
+        if (!timeValue) return "";
+
+        const [hoursValue, minutes] = timeValue.split(":").map(Number);
+        const suffix = hoursValue >= 12 ? "PM" : "AM";
+        const hours = hoursValue % 12 || 12;
+
+        return String(hours).padStart(2, "0") + ":" +
+               String(minutes).padStart(2, "0") + " " + suffix;
+    }
+
+    function calculateDuration() {
+        const departureValue =
+            document.getElementById("departureTime").value;
+
+        const arrivalValue =
+            document.getElementById("arrivalTime").value;
+
+        const durationInput =
+            document.getElementById("duration");
+
+        if (!departureValue || !arrivalValue) {
+            durationInput.value = "";
+            return;
+        }
+
+        const [departureHours, departureMinutes] =
+            departureValue.split(":").map(Number);
+
+        const [arrivalHours, arrivalMinutes] =
+            arrivalValue.split(":").map(Number);
+
+        let departureTotal =
+            departureHours * 60 + departureMinutes;
+
+        let arrivalTotal =
+            arrivalHours * 60 + arrivalMinutes;
+
+        // Arrival on the next day.
+        if (arrivalTotal <= departureTotal) {
+            arrivalTotal += 24 * 60;
+        }
+
+        const durationMinutes =
+            arrivalTotal - departureTotal;
+
+        const hours =
+            Math.floor(durationMinutes / 60);
+
+        const minutes =
+            durationMinutes % 60;
+
+        durationInput.value =
+            String(hours).padStart(2, "0") +
+            ":" +
+            String(minutes).padStart(2, "0");
+    }
+
+    function formatDuration(timeValue) {
+        if (!timeValue) return "";
+        const [hours, minutes] = timeValue.split(":").map(Number);
+        return String(hours).padStart(2, "0") + "h " +
+               String(minutes).padStart(2, "0") + "m";
+    }
+
+    function formatDate(dateValue) {
+        if (!dateValue) return "";
+        const dateObject = new Date(dateValue + "T00:00:00");
+
+        return dateObject.toLocaleDateString("en-GB", {
+            weekday: "short",
+            day: "2-digit",
+            month: "short"
+        });
+    }
+
+    function getArrivalDate() {
+        const date = value("journeyDate");
+        const departure = value("departureTime");
+        const arrival = value("arrivalTime");
+
+        const departureDate = new Date(date + "T" + departure + ":00");
+        const arrivalDate = new Date(date + "T" + arrival + ":00");
+
+        if (arrivalDate <= departureDate) {
+            arrivalDate.setDate(arrivalDate.getDate() + 1);
+        }
+
+        return arrivalDate.toLocaleDateString("en-GB", {
+            weekday: "short",
+            day: "2-digit",
+            month: "short"
+        });
+    }
+
+    function drawText(text, x, y, fontSize, color = "#222", weight = "normal", maxWidth = null, align = "left") {
+        context.save();
+        context.font = weight + " " + fontSize + "px Arial";
+        context.fillStyle = color;
+        context.textBaseline = "top";
+        context.textAlign = align;
+
+        if (maxWidth) {
+            context.fillText(text, x, y, maxWidth);
+        } else {
+            context.fillText(text, x, y);
+        }
+
+        context.restore();
+    }
+
+    function drawCenteredRoute(fromCity, toCity, y) {
+        const routeLeft = 45;
+        const routeRight = 500;
+        const availableWidth = routeRight - routeLeft;
+        const arrow = "→";
+        const gap = 12;
+        const weight = "bold";
+        const minimumFontSize = 16;
+        let fontSize = 27;
+
+        function measureTextWidth(text, size, isArrow = false) {
+            context.save();
+            context.font = (isArrow ? "normal" : weight) + " " + size + "px Arial";
+            const width = context.measureText(text).width;
+            context.restore();
+            return width;
+        }
+
+        let fromWidth;
+        let arrowWidth;
+        let toWidth;
+        let totalWidth;
+
+        do {
+            fromWidth = measureTextWidth(fromCity, fontSize);
+            arrowWidth = measureTextWidth(arrow, fontSize + 2, true);
+            toWidth = measureTextWidth(toCity, fontSize);
+            totalWidth = fromWidth + gap + arrowWidth + gap + toWidth;
+
+            if (totalWidth <= availableWidth || fontSize <= minimumFontSize) {
+                break;
+            }
+
+            fontSize--;
+        } while (fontSize >= minimumFontSize);
+
+        // Position starting from the left margin (45px) aligned with the rest of the bill details
+        const startX = routeLeft;
+        const arrowX = startX + fromWidth + gap;
+        const toCityX = arrowX + arrowWidth + gap;
+
+        drawText(fromCity, startX, y, fontSize, "#111", weight);
+        drawText(arrow, arrowX, y - 1, fontSize + 2, "#e09a25", "normal");
+        drawText(toCity, toCityX, y, fontSize, "#111", weight);
+    }
+
+    function drawBlankTemplate() {
+        context.clearRect(0, 0, canvas.width, canvas.height);
+        context.drawImage(templateImage, 0, 0, canvas.width, canvas.height);
+    }
+
+    function validateForm() {
+        if (!form.checkValidity()) {
+            form.reportValidity();
+            return false;
+        }
+        return true;
+    }
+
+    function drawBillData() {
+        calculateDuration();
+
+        if (!templateLoaded) {
+            alert("empty-template-az.jpg was not found in the same folder.");
+            return false;
+        }
+
+        if (!validateForm()) {
+            return false;
+        }
+
+        drawBlankTemplate();
+
+        const departureDate = formatDate(value("journeyDate"));
+        const arrivalDate = getArrivalDate();
+
+        /*
+         * Corrected coordinates based on the supplied original ticket.
+         * Only values are drawn; labels already exist in the blank template.
+         */
+
+        // Order number
+        drawText(value("orderNumber"), 855, 95, 18, "#222", "bold", 215);
+
+        // Boarding phone and support name
+        drawText(value("boardingPhone"), 46, 235, 21, "#222", "normal", 260);
+		// Ticket ID and PNR
+        drawText(value("ticketId"), 273, 390, 19, "#222", "bold", 220);
+        drawText(value("pnr"), 222, 423, 18, "#222", "bold", 760);
+
+        // Route: city names and arrow are measured and centered dynamically.
+        drawCenteredRoute(value("fromCity"), value("toCity"), 483);
+
+        // Operator and bus type
+        drawText(value("operatorName"), 45, 536, 25, "#222", "normal", 430);
+        drawText(value("busType"), 45, 571, 20, "#777", "normal", 430);
+
+        // Duration: only first line; the word "duration" is already in template
+        drawText(formatDuration(value("duration")), 565, 637, 20, "#444", "normal", null, "center");
+
+        // Boarding information
+        drawText(formatTime(value("departureTime")), 45, 650, 24, "#111", "bold");
+        drawText(departureDate, 45, 686, 19, "#444", "bold");
+        drawText(value("fromCity"), 45, 721, 19, "#222", "bold", 250);
+        drawText(value("boardingStand"), 45, 754, 18, "#444", "bold", 300);
+        drawText("Contact: " + value("boardingContact"), 45, 788, 18, "#444", "bold", 350);
+
+        // Drop information
+        drawText(formatTime(value("arrivalTime")), 1085, 650, 24, "#111", "bold", null, "right");
+        drawText(arrivalDate, 1085, 686, 19, "#444", "bold", null, "right");
+        drawText(value("toCity"), 1085, 721, 19, "#222", "bold", 250, "right");
+        drawText(value("dropStand"), 1085, 754, 18, "#222", "bold", 300, "right");
+        drawText("Contact: " + value("dropContact"), 1085, 788, 18, "#444", "bold", 350, "right");
+
+        // Traveller details
+        drawText(value("passengerName"), 45, 962, 20, "#222", "normal", 285);
+        drawText(value("gender") + ", " + value("age") + " years", 378, 962, 20, "#666", "normal", 280);
+        drawText(value("seatNumber"), 840, 962, 20, "#222", "normal", 120);
+
+        // Fare
+        drawText("₹" + Number(value("fare")).toFixed(2), 180, 1013, 22, "#c40000", "bold", 210);
+
+        billGenerated = true;
+        statusMessage.textContent = "Bill generated successfully.";
+        return true;
+    }
+
+    templateImage.onload = function () {
+        templateLoaded = true;
+        canvas.width = templateImage.naturalWidth;
+        canvas.height = templateImage.naturalHeight;
+        drawBlankTemplate();
+        statusMessage.textContent = "Template loaded successfully.";
+    };
+
+    templateImage.onerror = function () {
+        templateLoaded = false;
+        canvas.width = 1130;
+        canvas.height = 1600;
+        context.fillStyle = "#fff";
+        context.fillRect(0, 0, canvas.width, canvas.height);
+        drawText("empty-template-az.jpg not found", 565, 740, 30, "#dc2626", "bold", null, "center");
+        statusMessage.textContent = "Template image could not be loaded.";
+    };
+
+    document
+        .getElementById("departureTime")
+        .addEventListener("input", calculateDuration);
+
+    document
+        .getElementById("arrivalTime")
+        .addEventListener("input", calculateDuration);
+
+    templateImage.src = TEMPLATE_PATH;
+
+    form.addEventListener("submit", function (event) {
+        event.preventDefault();
+        drawBillData();
+    });
+
+    document.getElementById("downloadImageButton").addEventListener("click", function () {
+        if (!billGenerated && !drawBillData()) return;
+
+        const link = document.createElement("a");
+        link.download = value("ticketId") + "-e-ticket.png";
+        link.href = canvas.toDataURL("image/png");
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+    });
+
+    document.getElementById("downloadPdfButton").addEventListener("click", function () {
+        if (!billGenerated && !drawBillData()) return;
+
+        const imageData = canvas.toDataURL("image/jpeg", 1);
+        const pdfWidth = 210;
+        const pdfHeight = pdfWidth * canvas.height / canvas.width;
+        const { jsPDF } = window.jspdf;
+
+        const pdf = new jsPDF({
+            orientation: "portrait",
+            unit: "mm",
+            format: [pdfWidth, pdfHeight]
+        });
+
+        pdf.addImage(imageData, "JPEG", 0, 0, pdfWidth, pdfHeight);
+        pdf.save(value("ticketId") + "-e-ticket.pdf");
+    });
+
+    document.getElementById("randomNumbersButton").addEventListener(
+        "click",
+        generateNumbers
+    );
+
+    function setToday() {
+        const today = new Date();
+        document.getElementById("journeyDate").value =
+            today.getFullYear() + "-" +
+            String(today.getMonth() + 1).padStart(2, "0") + "-" +
+            String(today.getDate()).padStart(2, "0");
+    }function validateCities() {
+		const fromCity =
+			document.getElementById("fromCity");
+
+		const toCity =
+			document.getElementById("toCity");
+
+		if (
+			fromCity.value &&
+			toCity.value &&
+			fromCity.value === toCity.value
+		) {
+			toCity.setCustomValidity(
+				"From City and To City cannot be the same."
+			);
+
+			return false;
+		}
+
+		toCity.setCustomValidity("");
+		return true;
+	}
+
+    setToday();
+    generateNumbers();
+    calculateDuration();
+</script>
+</body>
+</html>

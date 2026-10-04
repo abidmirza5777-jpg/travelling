@@ -1,0 +1,833 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>New RedBus Ticket Generator</title>
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- jsPDF Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+    <style>
+        :root {
+            --redbus-red: #d84e55;
+            --redbus-dark: #b8363c;
+            --primary-accent: #0f4c81;
+            --bg-color: #f0f4f9;
+            --card-bg: #ffffff;
+            --border-color: #e2e8f0;
+            --text-dark: #1e293b;
+            --text-muted: #64748b;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: var(--bg-color);
+            color: var(--text-dark);
+            padding: 24px 20px;
+            min-height: 100vh;
+        }
+
+        .header-nav {
+            max-width: 1440px;
+            margin: 0 auto 22px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: var(--card-bg);
+            padding: 14px 24px;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+            border: 1px solid var(--border-color);
+        }
+
+        .header-brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            text-decoration: none;
+            color: var(--text-dark);
+        }
+
+        .brand-badge {
+            background: linear-gradient(135deg, #d84e55, #e53935);
+            color: #ffffff;
+            font-weight: 800;
+            font-size: 15px;
+            padding: 7px 14px;
+            border-radius: 10px;
+            letter-spacing: 0.5px;
+        }
+
+        .header-title {
+            font-size: 18px;
+            font-weight: 750;
+        }
+
+        .back-button {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 9px 18px;
+            color: #ffffff;
+            text-decoration: none;
+            background: linear-gradient(135deg, #0f4c81, #0ea5a4);
+            border-radius: 10px;
+            font-size: 13px;
+            font-weight: 700;
+            transition: all 0.2s ease;
+        }
+
+        .back-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(15, 76, 129, 0.25);
+        }
+
+        .container {
+            max-width: 1440px;
+            margin: auto;
+            display: grid;
+            grid-template-columns: minmax(460px, 1.05fr) minmax(500px, 0.95fr);
+            gap: 26px;
+            align-items: start;
+        }
+
+        .form-card,
+        .preview-card {
+            background: var(--card-bg);
+            border-radius: 18px;
+            padding: 26px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.06);
+            border: 1px solid var(--border-color);
+        }
+
+        .preview-card {
+            position: sticky;
+            top: 24px;
+        }
+
+        .section-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid #f1f5f9;
+        }
+
+        .section-header h2 {
+            font-size: 20px;
+            font-weight: 800;
+            color: var(--text-dark);
+        }
+
+        .badge-live {
+            background: #dcfce7;
+            color: #166534;
+            font-size: 12px;
+            font-weight: 700;
+            padding: 5px 12px;
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .badge-live::before {
+            content: "";
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: #22c55e;
+            display: inline-block;
+        }
+
+        .form-group-title {
+            grid-column: 1 / -1;
+            font-size: 12px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--redbus-red);
+            margin-top: 14px;
+            margin-bottom: 2px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .form-group-title::after {
+            content: "";
+            flex: 1;
+            height: 1px;
+            background: #e2e8f0;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 13px;
+        }
+
+        .field {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .full-width {
+            grid-column: 1 / -1;
+        }
+
+        label {
+            font-size: 12px;
+            font-weight: 700;
+            color: #475569;
+        }
+
+        input,
+        select {
+            width: 100%;
+            height: 42px;
+            padding: 0 12px;
+            border: 1.5px solid var(--border-color);
+            border-radius: 10px;
+            outline: none;
+            font-size: 13px;
+            font-family: inherit;
+            color: var(--text-dark);
+            background: #fafbfc;
+            transition: all 0.2s ease;
+        }
+
+        input:focus,
+        select:focus {
+            border-color: var(--redbus-red);
+            background: #ffffff;
+            box-shadow: 0 0 0 3px rgba(216, 78, 85, 0.12);
+        }
+
+        .buttons {
+            margin-top: 24px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        button {
+            min-height: 44px;
+            padding: 0 18px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            color: #ffffff;
+            font-size: 13.5px;
+            font-weight: 700;
+            font-family: inherit;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 7px;
+            transition: all 0.2s ease;
+        }
+
+        button:hover {
+            transform: translateY(-1px);
+        }
+
+        .btn-generate {
+            background: linear-gradient(135deg, #d84e55, #e53935);
+            box-shadow: 0 4px 14px rgba(216, 78, 85, 0.3);
+        }
+
+        .btn-download-img {
+            background: #059669;
+            box-shadow: 0 4px 14px rgba(5, 150, 105, 0.25);
+        }
+
+        .btn-download-pdf {
+            background: #0f4c81;
+            box-shadow: 0 4px 14px rgba(15, 76, 129, 0.25);
+        }
+
+        .btn-randomize {
+            background: #475569;
+        }
+
+        .canvas-wrapper {
+            background: #ffffff;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+        }
+
+        canvas {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        @media (max-width: 1100px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+
+            .preview-card {
+                position: static;
+                max-width: 640px;
+                margin: 0 auto;
+                width: 100%;
+            }
+        }
+
+        @media (max-width: 640px) {
+            body {
+                padding: 12px;
+            }
+
+            .header-nav {
+                flex-direction: column;
+                gap: 12px;
+                text-align: center;
+            }
+
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .buttons button {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <header class="header-nav">
+        <a href="index.html" class="header-brand">
+            <span class="brand-badge">redBus</span>
+            <span class="header-title">New Red Bus Ticket Studio</span>
+        </a>
+        <a href="index.html" class="back-button">
+            ← Back to Quick Links
+        </a>
+    </header>
+
+    <div class="container">
+        <!-- Form Section -->
+        <div class="form-card">
+            <div class="section-header">
+                <h2>Ticket Information</h2>
+                <span class="badge-live">Live Instant Sync</span>
+            </div>
+
+            <form id="ticketForm" onsubmit="event.preventDefault(); drawTicketData();">
+                <div class="form-grid">
+
+                    <!-- Header & Route -->
+                    <div class="form-group-title">1. Route & Schedule</div>
+
+                    <div class="field">
+                        <label for="fromCity">From City</label>
+                        <input type="text" id="fromCity" value="Hyderabad" required>
+                    </div>
+
+                    <div class="field">
+                        <label for="toCity">To City</label>
+                        <input type="text" id="toCity" value="Vijayawada" required>
+                    </div>
+
+                    <div class="field">
+                        <label for="journeyDate">Journey Date</label>
+                        <input type="date" id="journeyDate" value="2026-03-18" required>
+                    </div>
+
+                    <div class="field">
+                        <label for="journeyTime">Departure Time</label>
+                        <input type="text" id="journeyTime" value="10:45 PM" placeholder="10:45 PM" required>
+                    </div>
+
+                    <div class="field">
+                        <label for="ticketNumber">Ticket Number</label>
+                        <input type="text" id="ticketNumber" value="TV4H39054490" required>
+                    </div>
+
+                    <div class="field">
+                        <label for="pnrNumber">PNR Number</label>
+                        <input type="text" id="pnrNumber" value="IC223425534603" required>
+                    </div>
+
+                    <!-- Greeting & Passenger -->
+                    <div class="form-group-title">2. Passenger Details</div>
+
+                    <div class="field">
+                        <label for="passengerName">Passenger Name</label>
+                        <input type="text" id="passengerName" value="Abid Ali Mirza" required>
+                    </div>
+
+                    <div class="field">
+                        <label for="passengerAgeGender">Age & Gender</label>
+                        <input type="text" id="passengerAgeGender" value="30Yrs, MALE" required>
+                    </div>
+
+                    <div class="field">
+                        <label for="seatNumber">Seat Number</label>
+                        <input type="text" id="seatNumber" value="4UB" required>
+                    </div>
+
+                    <div class="field">
+                        <label for="ticketPrice">Ticket Price (₹)</label>
+                        <input type="text" id="ticketPrice" value="1395.0" placeholder="e.g. 1395.0" required>
+                    </div>
+
+                    <!-- Bus Operator Details -->
+                    <div class="form-group-title">3. Bus Operator Details</div>
+
+                    <div class="field">
+                        <label for="operatorName">Travels / Operator</label>
+                        <input type="text" id="operatorName" value="IntrCity SmartBus" required>
+                    </div>
+
+                    <div class="field">
+                        <label for="busType">Bus Type</label>
+                        <input type="text" id="busType" value="AC Sleeper (2+1)" required>
+                    </div>
+
+                    <!-- Boarding Point Details -->
+                    <div class="form-group-title">4. Boarding Point Details</div>
+
+                    <div class="field">
+                        <label for="boardingCity">Boarding City / Area</label>
+                        <input type="text" id="boardingCity" value="Hyderabad" required>
+                    </div>
+
+                    <div class="field">
+                        <label for="boardingSub">Boarding Sub-Location</label>
+                        <input type="text" id="boardingSub" value="Gachibowli" required>
+                    </div>
+
+                    <div class="field full-width">
+                        <label for="boardingAddress">Boarding Address Line</label>
+                        <input type="text" id="boardingAddress"
+                            value="Infront of Home Studioz Building, Beside Indian Bank, Towards Kondapur (Hyderabad)"
+                            required>
+                    </div>
+
+                    <div class="field full-width">
+                        <label for="boardingLandmark">Landmark</label>
+                        <input type="text" id="boardingLandmark"
+                            value="Infront of Home Studioz Building, Beside Indian Bank, Towards Kondapur (Hyderabad)"
+                            required>
+                    </div>
+
+                    <div class="field">
+                        <label for="boardingPhone1">Contact Number 1</label>
+                        <input type="text" id="boardingPhone1" value="7303093510" required>
+                    </div>
+
+                    <div class="field">
+                        <label for="boardingPhone2">Contact Number 2</label>
+                        <input type="text" id="boardingPhone2" value="7303093510" required>
+                    </div>
+
+                    <!-- Dropping Point Details -->
+                    <div class="form-group-title">5. Dropping Point Details</div>
+
+                    <div class="field">
+                        <label for="droppingCity">Dropping City</label>
+                        <input type="text" id="droppingCity" value="Vijayawada" required>
+                    </div>
+
+                    <div class="field">
+                        <label for="droppingLocation">Dropping Location / Stand</label>
+                        <input type="text" id="droppingLocation" value="Opp Police Control Room (Vijayawada)" required>
+                    </div>
+
+                    <div class="field full-width">
+                        <label for="droppingDateTime">Dropping Date & Time</label>
+                        <input type="text" id="droppingDateTime" value="19/03/2026, 06:05 AM" required>
+                    </div>
+
+                </div>
+
+                <div class="buttons">
+                    <button type="submit" class="btn-generate">
+                        🔄 Refresh Ticket
+                    </button>
+                    <button type="button" class="btn-download-img" id="downloadImageBtn">
+                        📥 Download PNG
+                    </button>
+                    <button type="button" class="btn-download-pdf" id="downloadPdfBtn">
+                        📄 Download PDF
+                    </button>
+                    <button type="button" class="btn-randomize" id="randomizeBtn">
+                        🎲 Randomize Sample
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Canvas Preview Section -->
+        <div class="preview-card">
+            <div class="section-header">
+                <h2>Ticket Preview</h2>
+                <span style="font-size: 12px; color: var(--text-muted);">Exact Template Alignment</span>
+            </div>
+
+            <div class="canvas-wrapper">
+                <canvas id="ticketCanvas"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById("ticketCanvas");
+        const ctx = canvas.getContext("2d");
+        const form = document.getElementById("ticketForm");
+
+        const templateImg = new Image();
+        templateImg.src = "plaint-ticket-new-redbus.jpg";
+
+        let isTemplateLoaded = false;
+
+        templateImg.onload = function () {
+            isTemplateLoaded = true;
+            canvas.width = templateImg.naturalWidth;
+            canvas.height = templateImg.naturalHeight;
+            drawTicketData();
+        };
+
+        templateImg.onerror = function () {
+            alert("plaint-ticket-new-redbus.jpg was not found in the same folder.");
+        };
+
+        function getVal(id) {
+            const el = document.getElementById(id);
+            return el ? el.value.trim() : "";
+        }
+
+        function formatDisplayDate(dateStr) {
+            if (!dateStr) return { dayName: "Wednesday", monthName: "March", dateNum: "18", year: "2026", dmy: "18/03/2026" };
+            const parts = dateStr.split("-");
+            if (parts.length === 3) {
+                const y = parseInt(parts[0], 10);
+                const m = parseInt(parts[1], 10) - 1;
+                const d = parseInt(parts[2], 10);
+                const dateObj = new Date(y, m, d);
+                const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+                const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+                return {
+                    dayName: days[dateObj.getDay()],
+                    monthName: months[dateObj.getMonth()],
+                    dateNum: String(d),
+                    year: String(y),
+                    dmy: `${String(d).padStart(2, "0")}/${String(m + 1).padStart(2, "0")}/${y}`
+                };
+            }
+            return { dayName: "Wednesday", monthName: "March", dateNum: "18", year: "2026", dmy: "18/03/2026" };
+        }
+
+        function drawTicketData() {
+            if (!isTemplateLoaded) return;
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(templateImg, 0, 0, canvas.width, canvas.height);
+
+            const fromCity = getVal("fromCity") || "Hyderabad";
+            const toCity = getVal("toCity") || "Vijayawada";
+            const journeyDate = getVal("journeyDate") || "2026-03-18";
+            const journeyTime = getVal("journeyTime") || "10:45 PM";
+            const ticketNumber = getVal("ticketNumber") || "TV4H39054490";
+            const pnrNumber = getVal("pnrNumber") || "IC223425534603";
+            const passengerName = getVal("passengerName") || "Abbas Pasha";
+            const passengerAgeGender = getVal("passengerAgeGender") || "44Yrs, MALE";
+            const seatNumber = getVal("seatNumber") || "4UB";
+            const ticketPrice = getVal("ticketPrice") || "1395.0";
+            const operatorName = getVal("operatorName") || "IntrCity SmartBus";
+            const busType = getVal("busType") || "AC Sleeper (2+1)";
+            const boardingCity = getVal("boardingCity") || "Hyderabad";
+            const boardingSub = getVal("boardingSub") || "Gachibowli";
+            const boardingAddress = getVal("boardingAddress") || "";
+            const boardingLandmark = getVal("boardingLandmark") || "";
+            const boardingPhone1 = getVal("boardingPhone1") || "7303093510";
+            const boardingPhone2 = getVal("boardingPhone2") || "7303093510";
+            const droppingCity = getVal("droppingCity") || "Vijayawada";
+            const droppingLocation = getVal("droppingLocation") || "Opp Police Control Room (Vijayawada)";
+            const droppingDateTime = getVal("droppingDateTime") || "19/03/2026, 06:05 AM";
+
+            const dateInfo = formatDisplayDate(journeyDate);
+
+            // Font family stack matching the template's clean native rendering
+            const fontStack = 'Arial, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+
+            // ==========================================
+            // 1. RED HEADER SECTION
+            // ==========================================
+            // Center of "Ticket Information" is roughly at x = 300
+            ctx.fillStyle = "#ffffff";
+            ctx.font = `bold 15px ${fontStack}`;
+            ctx.textAlign = "center";
+
+            // Header line 1: e.g. "Hyderabad-Vijayawada on Wednesday, March"
+            const headerRouteLine = `${fromCity}-${toCity} on ${dateInfo.dayName}, ${dateInfo.monthName}`;
+            ctx.fillText(headerRouteLine, 290, 72);
+
+            // Header line 2: e.g. "18, 2026"
+            ctx.fillText(`${dateInfo.dateNum}, ${dateInfo.year}`, 290, 97);
+
+            // Lower red stripe: Ticket Number and PNR
+            ctx.textAlign = "left";
+            ctx.font = `12.5px ${fontStack}`;
+            ctx.fillText("Ticket Number: ", 135, 128);
+
+            ctx.font = `bold 13.5px ${fontStack}`;
+            const tNumWidth = ctx.measureText(ticketNumber).width;
+            ctx.fillText(ticketNumber, 228, 128);
+
+            ctx.font = `12.5px ${fontStack}`;
+            const separatorX = 228 + tNumWidth + 6;
+            ctx.fillText(" |  PNR No: ", separatorX, 128);
+
+            const pnrPrefixWidth = ctx.measureText(" |  PNR No: ").width;
+            ctx.font = `bold 13.5px ${fontStack}`;
+            ctx.fillText(pnrNumber, separatorX + pnrPrefixWidth, 128);
+
+            // ==========================================
+            // 2. GREETING & CONFIRMATION BOX (y: 160-250)
+            // ==========================================
+            ctx.fillStyle = "#2c3e50";
+            ctx.font = `bold 16px ${fontStack}`;
+            ctx.fillText(`Hey ${passengerName} ,`, 7, 178);
+
+            ctx.fillStyle = "#4b5563";
+            ctx.font = `13px ${fontStack}`;
+            const greetLine1 = `Thank you for booking your bus ticket with redBus. Here are the ticket details for your upcoming trip from ${fromCity} to ${toCity} on`;
+            ctx.fillText(greetLine1, 7, 222);
+
+            const greetLine2 = `${dateInfo.dayName}, ${dateInfo.monthName} ${dateInfo.dateNum}, ${dateInfo.year}`;
+            ctx.fillText(greetLine2, 7, 242);
+
+            // ==========================================
+            // 3. JOURNEY DATE AND TIME (beside calendar icon)
+            // ==========================================
+            ctx.fillStyle = "#222222";
+            ctx.font = `bold 16px ${fontStack}`;
+            ctx.fillText(`${dateInfo.dmy}, ${journeyTime}`, 62, 352);
+
+            // ==========================================
+            // 4. TRAVELS (beside bus icon)
+            // ==========================================
+            ctx.fillStyle = "#222222";
+            ctx.font = `bold 16px ${fontStack}`;
+            ctx.fillText(operatorName, 59, 440);
+
+            ctx.fillStyle = "#666666";
+            ctx.font = `13.5px ${fontStack}`;
+            ctx.fillText(busType, 59, 459);
+
+            // ==========================================
+            // 5. TICKET PRICE (beside wallet icon)
+            // ==========================================
+            ctx.fillStyle = "#222222";
+            ctx.font = `bold 16px ${fontStack}`;
+            const priceText = ticketPrice.startsWith("Rs.") ? ticketPrice : `Rs. ${ticketPrice}`;
+            ctx.fillText(priceText, 59, 521);
+
+            // ==========================================
+            // 6. BOARDING POINT (beside pin icon)
+            // ==========================================
+            // Line 1: City / Area
+            ctx.fillStyle = "#222222";
+            ctx.font = `bold 16px ${fontStack}`;
+            ctx.fillText(boardingCity, 59, 622);
+
+            // Line 2: Sub-Location
+            ctx.fillStyle = "#666666";
+            ctx.font = `13.5px ${fontStack}`;
+            ctx.fillText(boardingSub, 59, 640);
+
+            // Line 3: Address
+            ctx.font = `13px ${fontStack}`;
+            ctx.fillText(boardingAddress, 59, 659);
+
+            // Line 4: Landmark
+            const landmarkFull = boardingLandmark.startsWith("Landmark:") ? boardingLandmark : `Landmark: ${boardingLandmark}`;
+            ctx.fillText(landmarkFull, 59, 679);
+
+            // Line 5 & 6: Contact numbers in blue
+            ctx.fillStyle = "#0038b8";
+            ctx.font = `bold 14px ${fontStack}`;
+            if (boardingPhone1) ctx.fillText(boardingPhone1, 59, 703);
+            if (boardingPhone2) ctx.fillText(boardingPhone2, 59, 730);
+
+            // ==========================================
+            // 7. DROPPING POINT (beside pin icon)
+            // ==========================================
+            // Line 1: Dropping City
+            ctx.fillStyle = "#222222";
+            ctx.font = `bold 16px ${fontStack}`;
+            ctx.fillText(droppingCity, 58, 803);
+
+            // Line 2: Dropping Location / Stand
+            ctx.fillStyle = "#666666";
+            ctx.font = `13.5px ${fontStack}`;
+            ctx.fillText(droppingLocation, 59, 822);
+
+            // Line 3: DROPPING DATE & TIME:
+            ctx.font = `11.5px ${fontStack}`;
+            ctx.fillText("DROPPING DATE & TIME:", 59, 842);
+
+            // Line 4: Dropping Date & Time Value
+            ctx.fillStyle = "#222222";
+            ctx.font = `bold 13.5px ${fontStack}`;
+            ctx.fillText(droppingDateTime, 59, 860);
+
+            // ==========================================
+            // 8. PASSENGER DETAILS & SEAT NO
+            // ==========================================
+            // Passenger Name
+            ctx.fillStyle = "#222222";
+            ctx.font = `bold 16px ${fontStack}`;
+            ctx.fillText(passengerName, 63, 949);
+
+            // Passenger Age & Gender
+            ctx.fillStyle = "#666666";
+            ctx.font = `13px ${fontStack}`;
+            ctx.fillText(passengerAgeGender, 64, 968);
+
+            // Seat Number (under 'Seat no' column)
+            ctx.fillStyle = "#222222";
+            ctx.font = `bold 16px ${fontStack}`;
+            ctx.fillText(seatNumber, 525, 951);
+        }
+
+        // Live updating on any input change
+        const inputs = document.querySelectorAll("#ticketForm input, #ticketForm select");
+        inputs.forEach(input => {
+            input.addEventListener("input", drawTicketData);
+        });
+
+        // Download PNG Image
+        document.getElementById("downloadImageBtn").addEventListener("click", () => {
+            drawTicketData();
+            const link = document.createElement("a");
+            const tNum = getVal("ticketNumber") || "redbus";
+            link.download = `${tNum}-ticket.png`;
+            link.href = canvas.toDataURL("image/png");
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+        });
+
+        // Download PDF
+        document.getElementById("downloadPdfBtn").addEventListener("click", () => {
+            drawTicketData();
+            const imgData = canvas.toDataURL("image/jpeg", 0.98);
+
+            const canvasWidth = canvas.width;
+            const canvasHeight = canvas.height;
+
+            const pdfWidth = 140; // mm
+            const pdfHeight = pdfWidth * (canvasHeight / canvasWidth);
+
+            const { jsPDF } = window.jspdf;
+            const pdf = new jsPDF({
+                orientation: pdfHeight > pdfWidth ? "portrait" : "landscape",
+                unit: "mm",
+                format: [pdfWidth, pdfHeight]
+            });
+
+            pdf.addImage(imgData, "JPEG", 0, 0, pdfWidth, pdfHeight);
+            const tNum = getVal("ticketNumber") || "redbus";
+            pdf.save(`${tNum}-ticket.pdf`);
+        });
+
+        // Randomize button with realistic routes
+        document.getElementById("randomizeBtn").addEventListener("click", () => {
+            const routes = [
+                {
+                    from: "Hyderabad",
+                    to: "Vijayawada",
+                    bCity: "Hyderabad",
+                    bSub: "Gachibowli",
+                    bAddr: "Infront of Home Studioz Building, Beside Indian Bank, Towards Kondapur (Hyderabad)",
+                    bLandmark: "Infront of Home Studioz Building, Beside Indian Bank, Towards Kondapur (Hyderabad)",
+                    dCity: "Vijayawada",
+                    dLoc: "Opp Police Control Room (Vijayawada)",
+                    operator: "IntrCity SmartBus",
+                    bus: "AC Sleeper (2+1)",
+                    price: "1395.0",
+                    seat: "4UB",
+                    dropTime: "19/03/2026, 06:05 AM"
+                },
+                {
+                    from: "Hyderabad",
+                    to: "Bangalore",
+                    bCity: "Hyderabad",
+                    bSub: "Ameerpet",
+                    bAddr: "Near Metro Pillar 1045, Opp Mythrivanam Complex, Ameerpet (Hyderabad)",
+                    bLandmark: "Opposite Mythrivanam Complex, Ameerpet",
+                    dCity: "Bangalore",
+                    dLoc: "Anand Rao Circle, Majestic (Bangalore)",
+                    operator: "Kaveri Travels",
+                    bus: "Bharat Benz A/C Sleeper (2+1)",
+                    price: "1550.0",
+                    seat: "L5",
+                    dropTime: "19/03/2026, 06:30 AM"
+                },
+                {
+                    from: "Chennai",
+                    to: "Coimbatore",
+                    bCity: "Chennai",
+                    bSub: "Koyambedu",
+                    bAddr: "Omni Bus Stand, Near Gate 2, Koyambedu (Chennai)",
+                    bLandmark: "Near Koyambedu Metro Station",
+                    dCity: "Coimbatore",
+                    dLoc: "Gandhipuram Central Bus Stand (Coimbatore)",
+                    operator: "Orange Travels",
+                    bus: "Volvo Multi-Axle A/C Sleeper",
+                    price: "1190.0",
+                    seat: "12UB",
+                    dropTime: "19/03/2026, 05:45 AM"
+                }
+            ];
+
+            const pick = routes[Math.floor(Math.random() * routes.length)];
+            document.getElementById("fromCity").value = pick.from;
+            document.getElementById("toCity").value = pick.to;
+            document.getElementById("boardingCity").value = pick.bCity;
+            document.getElementById("boardingSub").value = pick.bSub;
+            document.getElementById("boardingAddress").value = pick.bAddr;
+            document.getElementById("boardingLandmark").value = pick.bLandmark;
+            document.getElementById("droppingCity").value = pick.dCity;
+            document.getElementById("droppingLocation").value = pick.dLoc;
+            document.getElementById("operatorName").value = pick.operator;
+            document.getElementById("busType").value = pick.bus;
+            document.getElementById("ticketPrice").value = pick.price;
+            document.getElementById("seatNumber").value = pick.seat;
+            document.getElementById("droppingDateTime").value = pick.dropTime;
+
+            const rNum = () => Math.floor(100000000 + Math.random() * 900000000).toString();
+            document.getElementById("ticketNumber").value = "TV" + Math.floor(10 + Math.random() * 90) + "H" + rNum().substring(0, 8);
+            document.getElementById("pnrNumber").value = "IC" + rNum() + Math.floor(100 + Math.random() * 900);
+
+            drawTicketData();
+        });
+    </script>
+</body>
+
+</html>

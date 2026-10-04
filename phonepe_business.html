@@ -1,0 +1,937 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PhonePe Receipt Generator</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+    <style>
+        :root {
+            --primary: #7c3aed;
+            --primary-dark: #4c1d95;
+            --secondary: #a855f7;
+            --success: #6d28d9;
+            --danger: #c026d3;
+            --background: #f5f0ff;
+            --card: #ffffff;
+            --text: #172033;
+            --muted: #667085;
+            --border: #ddd6fe;
+            --shadow: 0 22px 55px rgba(109, 40, 217, 0.16);
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            font-family: "Inter", sans-serif;
+            color: var(--text);
+            background:
+                radial-gradient(circle at top left, rgba(168,85,247,.16), transparent 32%),
+                radial-gradient(circle at bottom right, rgba(124,58,237,.16), transparent 35%),
+                var(--background);
+        }
+
+        input,
+        button {
+            font: inherit;
+        }
+
+        .topbar {
+            min-height: 72px;
+            padding: 15px 5%;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            color: #fff;
+            background: linear-gradient(135deg, var(--primary-dark), var(--primary), var(--secondary));
+            box-shadow: 0 8px 28px rgba(76, 29, 149, .20);
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 13px;
+        }
+
+        .brand-icon {
+            width: 44px;
+            height: 44px;
+            display: grid;
+            place-items: center;
+            border-radius: 14px;
+            color: var(--primary-dark);
+            background: #fff;
+            font-size: 18px;
+            font-weight: 900;
+        }
+
+        .brand h1 {
+            margin: 0 0 3px;
+            font-size: 20px;
+        }
+
+        .brand p {
+            margin: 0;
+            color: rgba(255,255,255,.78);
+            font-size: 11px;
+        }
+
+        main {
+            padding: 34px 20px 60px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1450px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: minmax(0, .9fr) minmax(460px, 1.1fr);
+            gap: 30px;
+            align-items: start;
+        }
+
+        .card {
+            overflow: hidden;
+            background: #fff;
+            border-radius: 24px;
+            box-shadow: var(--shadow);
+        }
+
+        .card-header {
+            padding: 24px 28px;
+            color: #fff;
+            background: linear-gradient(135deg, var(--primary-dark), var(--primary));
+        }
+
+        .card-header h2 {
+            margin: 0 0 5px;
+            font-size: 22px;
+        }
+
+        .card-header p {
+            margin: 0;
+            color: rgba(255,255,255,.76);
+            font-size: 12px;
+        }
+
+        .card-body {
+            padding: 26px;
+        }
+
+        .section-title {
+            grid-column: 1 / -1;
+            padding-bottom: 9px;
+            color: var(--primary-dark);
+            border-bottom: 1px solid var(--border);
+            font-size: 12px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: .06em;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0,1fr));
+            gap: 18px;
+        }
+
+        .field {
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+        }
+
+        .full-width {
+            grid-column: 1 / -1;
+        }
+
+        label {
+            margin-bottom: 7px;
+            color: #344054;
+            font-size: 12px;
+            font-weight: 750;
+        }
+
+        input {
+            width: 100%;
+            min-height: 48px;
+            padding: 0 13px;
+            color: var(--text);
+            background: #fbfcfe;
+            border: 1px solid var(--border);
+            border-radius: 11px;
+            outline: none;
+            font-size: 13px;
+        }
+
+        input:focus {
+            border-color: var(--secondary);
+            background: #fff;
+            box-shadow: 0 0 0 4px rgba(168,85,247,.12);
+        }
+
+        .auto-field {
+            color: #6d28d9;
+            background: #f3e8ff;
+            border-color: #c4b5fd;
+            font-weight: 700;
+        }
+
+        .buttons {
+            margin-top: 26px;
+            padding-top: 22px;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: flex-end;
+            gap: 10px;
+            border-top: 1px solid var(--border);
+        }
+
+        button {
+            min-height: 47px;
+            padding: 0 18px;
+            border: none;
+            border-radius: 11px;
+            cursor: pointer;
+            color: #fff;
+            font-size: 13px;
+            font-weight: 750;
+            transition: transform .2s ease;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+        }.back-button {
+			display: inline-flex;
+			align-items: center;
+			gap: 8px;
+			padding: 11px 16px;
+			color: #ffffff;
+			text-decoration: none;
+			background: linear-gradient(135deg, #0f4c81, #0ea5a4);
+			border-radius: 10px;
+			font-size: 13px;
+			font-weight: 700;
+			transition: 0.2s ease;
+		}
+
+		.back-button:hover {
+			transform: translateY(-2px);
+			box-shadow: 0 8px 20px rgba(15, 76, 129, 0.22);
+		}
+
+        .generate-btn {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+        }
+
+        .image-btn {
+            background: #7c3aed;
+        }
+
+        .pdf-btn {
+            background: #6d28d9;
+        }
+
+        .random-btn {
+            background: #c026d3;
+        }
+
+        .preview-card {
+            position: sticky;
+            top: 20px;
+        }
+
+        .canvas-shell {
+            min-height: 720px;
+            padding: 16px;
+            display: grid;
+            place-items: center;
+            overflow: auto;
+            background: #f8f5ff;
+            border: 1px solid var(--border);
+            border-radius: 15px;
+        }
+
+        canvas {
+            width: 100%;
+            max-width: 100%;
+            height: auto;
+            display: block;
+            background: #fff;
+            box-shadow: 0 12px 30px rgba(76,29,149,.15);
+        }
+
+        .status {
+            margin-top: 13px;
+            padding: 10px 12px;
+            color: #5b21b6;
+            background: #f3e8ff;
+            border-radius: 9px;
+            font-size: 11px;
+        }
+
+        @media (max-width: 1100px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+
+            .preview-card {
+                position: static;
+            }
+        }
+
+        @media (max-width: 650px) {
+            main {
+                padding: 20px 12px 40px;
+            }
+
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .section-title,
+            .full-width {
+                grid-column: auto;
+            }
+
+            .card-body {
+                padding: 18px;
+            }
+
+            .buttons {
+                flex-direction: column;
+            }
+
+            button {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+
+<body>
+<header class="topbar">
+    <div class="brand">
+        <div class="brand-icon">UPI</div>
+        <div>
+            <h1>PhonePe Receipt Generator</h1>
+            <p>Create and download a transaction receipt</p>
+        </div>
+    </div>
+</header>
+
+<main>
+<div class="container">
+    <section class="card">
+        <div class="card-header">
+            <h2>Transaction Details</h2>
+            <p>UPI ID, Transaction ID and UTR are generated automatically.</p>
+        </div>
+
+        <div class="card-body">
+            <form id="receiptForm">
+                <div class="form-grid">
+
+                    <div class="section-title">Payment Details</div>
+
+                    <div class="field">
+                        <label for="paidToName">Paid To Name</label>
+                        <input type="text" id="paidToName" value="Subha Pradha Hotel" required>
+                    </div>
+
+                    <div class="field">
+                        <label for="amount">Amount</label>
+                        <input type="number" id="amount" min="1" step="0.01" value="140" required>
+                    </div>
+
+                    <div class="field">
+                        <label for="transactionDate">Transaction Date</label>
+                        <input type="date" id="transactionDate" value="2026-07-10" required>
+                    </div>
+
+                    <div class="field">
+                        <label for="transactionTime">Transaction Time</label>
+                        <input type="time" id="transactionTime" value="22:48" required>
+                    </div>
+
+                    <div class="field">
+                        <label for="debitedAccount">Debited Account</label>
+                        <input type="text" id="debitedAccount" value="XXXXXXXX559867" required>
+                    </div>
+
+                    <div class="field">
+                        <label for="avatarInitials">Avatar Initials</label>
+                        <input type="text" id="avatarInitials" value="RM" maxlength="3" required>
+                    </div>
+
+                    <div class="section-title">Auto-Generated Values</div>
+
+                    <div class="field full-width">
+                        <label for="upiId">UPI ID</label>
+                        <input type="text" id="upiId" class="auto-field" readonly required>
+                    </div>
+
+                    <div class="field full-width">
+                        <label for="transactionId">Transaction ID</label>
+                        <input type="text" id="transactionId" class="auto-field" readonly required>
+                    </div>
+
+                    <div class="field full-width">
+                        <label for="utrNumber">UTR Number</label>
+                        <input type="text" id="utrNumber" class="auto-field" readonly required>
+                    </div>
+
+                </div>
+
+                <div class="buttons">
+                    <button type="submit" class="generate-btn">Generate Bill</button>
+                    <button type="button" id="downloadImageButton" class="image-btn">Download Image</button>
+                    <button type="button" id="downloadPdfButton" class="pdf-btn">Download PDF</button>
+                    <button type="button" id="generateIdsButton" class="random-btn">Generate New IDs</button>
+                </div>
+            </form>
+			<div style="margin-bottom: 18px;">
+				<center><br><a href="index.php" class="back-button">
+					← Back to Home
+				</a></center>
+			</div>
+        </div>
+    </section>
+
+    <section class="card preview-card">
+        <div class="card-header">
+            <h2>Bill Preview</h2>
+            <p>Uses empty_phone.jpg from the same folder.</p>
+        </div>
+
+        <div class="card-body">
+            <div class="canvas-shell">
+                <canvas id="receiptCanvas"></canvas>
+            </div>
+
+            <div class="status" id="statusMessage">
+                Loading template…
+            </div>
+        </div>
+    </section>
+</div>
+</main>
+
+<script>
+    const TEMPLATE_PATH = "empty_phone.jpg";
+
+    const canvas =
+        document.getElementById("receiptCanvas");
+
+    const context =
+        canvas.getContext("2d");
+
+    const form =
+        document.getElementById("receiptForm");
+
+    const statusMessage =
+        document.getElementById("statusMessage");
+
+    const templateImage =
+        new Image();
+
+    let templateLoaded = false;
+    let receiptGenerated = false;
+
+    function value(id) {
+        return document.getElementById(id).value.trim();
+    }
+
+    function randomDigits(length) {
+        let result = "";
+
+        for (let i = 0; i < length; i++) {
+            result += Math.floor(Math.random() * 10);
+        }
+
+        return result;
+    }
+
+    function randomLetters(length) {
+        const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+        let result = "";
+
+        for (let i = 0; i < length; i++) {
+            result += letters[
+                Math.floor(Math.random() * letters.length)
+            ];
+        }
+
+        return result;
+    }
+
+    function generateUpiId() {
+        const handles = [
+            "@ybl",
+            "@ibl",
+            "@axl",
+            "@okhdfcbank",
+            "@okicici"
+        ];
+
+        return (
+            randomLetters(1) +
+            randomDigits(9) +
+            handles[
+                Math.floor(Math.random() * handles.length)
+            ]
+        );
+    }
+
+    function getTransactionPrefix() {
+        const dateValue =
+            document.getElementById("transactionDate").value;
+
+        const timeValue =
+            document.getElementById("transactionTime").value;
+
+        if (!dateValue || !timeValue) {
+            return "";
+        }
+
+        const [year, month, day] =
+            dateValue.split("-");
+
+        const [hour, minute] =
+            timeValue.split(":");
+
+        return (
+            year.slice(-2) +
+            month +
+            day +
+            hour +
+            minute
+        );
+    }
+
+    function generateIds() {
+        const prefix =
+            getTransactionPrefix();
+
+        if (!prefix) {
+            document.getElementById("upiId").value = "";
+            document.getElementById("transactionId").value = "";
+            document.getElementById("utrNumber").value = "";
+            return;
+        }
+
+        document.getElementById("upiId").value =
+            generateUpiId();
+
+        document.getElementById("transactionId").value =
+            "T" +
+            prefix +
+            randomDigits(12);
+
+        document.getElementById("utrNumber").value =
+            randomDigits(12);
+
+        receiptGenerated = false;
+
+        if (templateLoaded) {
+            drawBlankTemplate();
+        }
+
+        statusMessage.textContent =
+            "New UPI ID, Transaction ID and UTR generated.";
+    }
+
+    function formatTime(timeValue) {
+        if (!timeValue) {
+            return "";
+        }
+
+        const [hoursValue, minutes] =
+            timeValue.split(":").map(Number);
+
+        const suffix =
+            hoursValue >= 12 ? "pm" : "am";
+
+        const hours =
+            hoursValue % 12 || 12;
+
+        return (
+            String(hours).padStart(2, "0") +
+            ":" +
+            String(minutes).padStart(2, "0") +
+            " " +
+            suffix
+        );
+    }
+
+    function formatDate(dateValue) {
+        if (!dateValue) {
+            return "";
+        }
+
+        const dateObject =
+            new Date(dateValue + "T00:00:00");
+
+        return dateObject.toLocaleDateString(
+            "en-GB",
+            {
+                day: "2-digit",
+                month: "short",
+                year: "numeric"
+            }
+        );
+    }
+
+    function drawText(
+        text,
+        x,
+        y,
+        fontSize,
+        color = "#222222",
+        weight = "normal",
+        maxWidth = null,
+        align = "left"
+    ) {
+        context.save();
+
+        context.font =
+            weight + " " +
+            fontSize + "px Arial";
+
+        context.fillStyle = color;
+        context.textBaseline = "top";
+        context.textAlign = align;
+
+        if (maxWidth) {
+            context.fillText(text, x, y, maxWidth);
+        } else {
+            context.fillText(text, x, y);
+        }
+
+        context.restore();
+    }
+
+    function drawBlankTemplate() {
+        context.clearRect(
+            0,
+            0,
+            canvas.width,
+            canvas.height
+        );
+
+        context.drawImage(
+            templateImage,
+            0,
+            0,
+            canvas.width,
+            canvas.height
+        );
+    }
+
+    function validateForm() {
+        if (!form.checkValidity()) {
+            form.reportValidity();
+            return false;
+        }
+
+        return true;
+    }
+
+    function drawReceiptData() {
+        if (!templateLoaded) {
+            alert(
+                "empty_phone.jpg was not found. Keep it in the same folder as this file."
+            );
+            return false;
+        }
+
+        if (!validateForm()) {
+            return false;
+        }
+
+        drawBlankTemplate();
+
+        const amount =
+            Number(value("amount") || 0);
+
+        const formattedAmount =
+            "₹" + amount.toFixed(0);
+
+        const dateTimeText =
+            formatTime(value("transactionTime")) +
+            " on " +
+            formatDate(value("transactionDate"));
+
+        /*
+         * Coordinates based on the supplied 720 × 1275 template.
+         */
+
+        // Date/time under Transaction Successful
+        drawText(
+            dateTimeText,
+            145,
+            59,
+            22,
+            "#ffffff",
+            "normal",
+            430
+        );
+
+        // Paid-to name
+        drawText(
+            value("paidToName"),
+            160,
+            220,
+            31,
+            "#222222",
+            "normal",
+            390
+        );
+
+        // Auto-generated UPI ID
+        drawText(
+            value("upiId"),
+            160,
+            267,
+            25,
+            "#666666",
+            "normal",
+            420
+        );
+
+        // Amount at top right
+        drawText(
+            formattedAmount,
+            670,
+            220,
+            31,
+            "#111111",
+            "bold",
+            null,
+            "right"
+        );
+
+        // Transaction ID
+        drawText(
+            value("transactionId"),
+            48,
+            486,
+            24,
+            "#222222",
+            "normal",
+            560
+        );
+
+        // Debited account
+        drawText(
+            value("debitedAccount"),
+            160,
+            605,
+            31,
+            "#222222",
+            "normal",
+            360
+        );
+
+        // Amount on debit row
+        drawText(
+            formattedAmount,
+            670,
+            605,
+            31,
+            "#111111",
+            "normal",
+            null,
+            "right"
+        );
+
+        // UTR number
+        drawText(
+            value("utrNumber"),
+            265,
+            675,
+            26,
+            "#666666",
+            "normal",
+            320
+        );
+
+        receiptGenerated = true;
+
+        statusMessage.textContent =
+            "PhonePe receipt generated successfully.";
+
+        return true;
+    }
+
+    templateImage.onload = function () {
+        templateLoaded = true;
+
+        canvas.width =
+            templateImage.naturalWidth;
+
+        canvas.height =
+            templateImage.naturalHeight;
+
+        drawBlankTemplate();
+
+        statusMessage.textContent =
+            "Template loaded successfully.";
+    };
+
+    templateImage.onerror = function () {
+        templateLoaded = false;
+
+        canvas.width = 720;
+        canvas.height = 1275;
+
+        context.fillStyle = "#ffffff";
+        context.fillRect(
+            0,
+            0,
+            canvas.width,
+            canvas.height
+        );
+
+        drawText(
+            "empty_phone.jpg not found",
+            canvas.width / 2,
+            580,
+            28,
+            "#dc2626",
+            "bold",
+            null,
+            "center"
+        );
+
+        statusMessage.textContent =
+            "Template could not be loaded.";
+    };
+
+    document
+        .getElementById("transactionDate")
+        .addEventListener(
+            "change",
+            generateIds
+        );
+
+    document
+        .getElementById("transactionTime")
+        .addEventListener(
+            "input",
+            generateIds
+        );
+
+    templateImage.src = TEMPLATE_PATH;
+
+    form.addEventListener(
+        "submit",
+        function (event) {
+            event.preventDefault();
+            drawReceiptData();
+        }
+    );
+
+    document
+        .getElementById("downloadImageButton")
+        .addEventListener(
+            "click",
+            function () {
+                if (
+                    !receiptGenerated &&
+                    !drawReceiptData()
+                ) {
+                    return;
+                }
+
+                const link =
+                    document.createElement("a");
+
+                link.download =
+                    value("transactionId") +
+                    "-phonepe-receipt.png";
+
+                link.href =
+                    canvas.toDataURL("image/png");
+
+                document.body.appendChild(link);
+                link.click();
+                link.remove();
+            }
+        );
+
+    document
+        .getElementById("downloadPdfButton")
+        .addEventListener(
+            "click",
+            function () {
+                if (
+                    !receiptGenerated &&
+                    !drawReceiptData()
+                ) {
+                    return;
+                }
+
+                const imageData =
+                    canvas.toDataURL(
+                        "image/jpeg",
+                        1
+                    );
+
+                const pdfWidth = 100;
+
+                const pdfHeight =
+                    pdfWidth *
+                    (
+                        canvas.height /
+                        canvas.width
+                    );
+
+                const { jsPDF } =
+                    window.jspdf;
+
+                const pdf =
+                    new jsPDF({
+                        orientation: "portrait",
+                        unit: "mm",
+                        format: [
+                            pdfWidth,
+                            pdfHeight
+                        ]
+                    });
+
+                pdf.addImage(
+                    imageData,
+                    "JPEG",
+                    0,
+                    0,
+                    pdfWidth,
+                    pdfHeight
+                );
+
+                pdf.save(
+                    value("transactionId") +
+                    "-phonepe-receipt.pdf"
+                );
+            }
+        );
+
+    document
+        .getElementById("generateIdsButton")
+        .addEventListener(
+            "click",
+            generateIds
+        );
+
+    generateIds();
+</script>
+</body>
+</html>
